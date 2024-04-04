@@ -181,6 +181,41 @@ class LibreTranslate
         }
     }
 
+    public function translateBatch(Array $text, $source = null, $target = null){
+        $data = [
+            'q' => $text,
+            'format' => 'text',
+            'source' => !is_null($source) ? $source : $this->sourceLanguage,
+            'target' => !is_null($target) ? $target : $this->targetLanguage
+        ];
+        if (!is_null($this->apiKey)) {
+            $data['api_key'] = $this->apiKey;
+        }
+        
+        $this->lastError = '';
+        $finalEndpoint = $this->apiBase . ( !is_null($this->apiPort) ? ':' . $this->apiPort : '' ) . '/translate';
+        $ch = \curl_init($finalEndpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_HTTPHEADER => [
+              "Content-Type: application/json"
+            ],
+        ]);
+        $response = curl_exec($ch);
+
+        // check for errors
+        if (curl_errno($ch) != 0) {
+            throw new \Exception(curl_error($ch), curl_errno($ch));
+        }
+        if (isset($response->error)) {
+            throw new \Exception($response->error);
+        }
+        
+        return json_decode($response)->translatedText;
+    }
+
 
     //=========== Translate File ======
     /*
